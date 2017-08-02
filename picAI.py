@@ -6,12 +6,21 @@ def postRequest(key, url):
     import urllib2
     import httplib
     import requests
-    
-    post_data = urllib.urlencode(key)
-    req = urllib2.Request(url,post_data)
+
+
+    # keysList = key.items()
+    # keysList.sort()
+
+    post_data = ''
+    for keys in key:
+        post_data += '%s=%s&' %(str(keys),str(key[keys]))
+    headers = {'Content-type': 'application/x-www-form-urlencoded',
+               'Accept': 'application/json'}
+
+    req = urllib2.Request(url, post_data, headers=headers)
     resp = urllib2.urlopen(req)
     file=resp.read()
-    print file 
+    print file
 
 # Json encode
 def jsonEncode(para):
@@ -59,7 +68,7 @@ def base64Endcode(content, sizelimit = 1 * 1024 * 1024):
     import base64
 
     try:
-        _content = base64.urlsafe_b64encode(content)
+        _content = base64.b64encode(content)
     except Exception, e:
         def baseError(error):
             print 'error#2: can not encode this content, ' + str(e)
@@ -100,11 +109,17 @@ def main():
     from random import randint
     
     if len(sys.argv) < 2:
-        usage()
+        # usage()
+        pass
 
-    imagePath = str(sys.argv[1])
-    imagePath = imagePath.strip()
-    imageType = imagePath[len(imagePath) - 3:]
+    # imagePath = str(sys.argv[1])
+    # imagePath = imagePath.strip()
+    # imageType = imagePath[len(imagePath) - 3:]
+
+    if len(sys.argv) < 2:
+        imagePath = './test.jpg'
+        imageType = imagePath[len(imagePath) - 3:]
+
     if imageType != 'jpg':
         print 'please input the *.jpg file'
         exit(-1)
@@ -118,34 +133,35 @@ def main():
         errorProcess(errorType = 'CRASH', process = fileError, parm = e)
     imageFile.close()
 
-    keys = {'app_id': '', 
+    keys = {'app_id': 'your_app_id',
             'time_stamp': '', 
             'nonce_str': '',
-            'sign': '', 
             'format': '1',
             'topk': '5',
             'image': ''
             }
     url = 'https://api.ai.qq.com/fcgi-bin/vision/vision_objectr'
 
-    # time_stamp
-    from urllib import quote_plus as quote
+    keys['time_stamp'] = str(getTimestamp())
+    keys['nonce_str'] = getRandomString(length = randint(10, 20))
+    keys['image'] = base64Endcode(image)
 
-    keys['time_stamp'] = quote(str(getTimestamp()))
-    keys['nonce_str'] = quote(getRandomString(length = 10))
-    keys['image'] = quote(base64Endcode(image))
-    
+    for key in keys:
+        from urllib import quote_plus as quote
+        keys[key] = quote(keys[key])
+
     keysList = keys.items()
     keysList.sort()
     tmpStr = ''
     for key,value in keysList:
         if key == 'sign':
             continue
-        tmpStr += '%s=%s&' %(quote(str(key)), quote(str(value)))
+        tmpStr += '%s=%s&' %(str(key),str(value))
     
-    tmpStr += quote('app_key=*********')
+    tmpStr += 'app_key=' + quote('your_app_key')
     keys['sign'] = quote(getMD5(content=tmpStr))
-    req = postRequest(key = keys, url = url)
+    print tmpStr
+    postRequest(key = keys, url = url)
 
 if __name__ == '__main__':
     main()
